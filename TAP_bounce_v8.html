@@ -19,14 +19,14 @@ body {
 }
 .stage {
   position: relative;
-  width: 560px;
-  height: 140px;
+  width: 1080px;
+  height: 160px;
   overflow: hidden;
 }
 #dot {
   position: absolute;
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: #a8a5a2;
   transform-origin: center bottom;
@@ -41,7 +41,7 @@ body {
 }
 #logo {
   position: absolute;
-  width: 72px;
+  width: 88px;
   opacity: 0;
   pointer-events: none;
 }
@@ -54,52 +54,41 @@ body {
   <div id="dot"></div>
 </div>
 <script>
-const dot    = document.getElementById('dot');
-const shadow = document.getElementById('shadow');
-const logo   = document.getElementById('logo');
-const DOT_R  = 11;
-const LOGO_W = 72;
-const STAGE_W = 560;
+const dot     = document.getElementById('dot');
+const shadow  = document.getElementById('shadow');
+const logo    = document.getElementById('logo');
+const DOT_R   = 13;
+const LOGO_W  = 88;
+const STAGE_W = 1080;
 const ROUNDS  = 3;
-const roundW  = STAGE_W / ROUNDS;
+const roundW  = STAGE_W / ROUNDS; // 360px na rundę
 
-const BLACK_THRESHOLD = 12;
+const BLACK_THRESHOLD = 14;
 
-// Jedna tura: 3 rundy (9 faz) przechodzące przez cały stage
-// Potem kropka "wylatuje" za prawy ekran — wysoki łuk poza stage
-// i wraca od lewej zaczynając drugą turę
-
-function buildTour(xStart) {
+function buildTour() {
   const phases = [];
   for (let r = 0; r < ROUNDS; r++) {
-    const base = xStart + r * roundW;
+    const base = r * roundW;
     phases.push(
-      { x0: base,               x1: base + roundW*0.33, peak: 78, dur: 1320, showLogo: false, stayBlack: false },
-      { x0: base + roundW*0.33, x1: base + roundW*0.66, peak: 62, dur: 1270, showLogo: false, stayBlack: false },
-      { x0: base + roundW*0.66, x1: base + roundW,      peak: 48, dur: 1220, showLogo: true,  stayBlack: true  }
+      { x0: base,                x1: base + roundW*0.33, peak: 92,  dur: 1320, showLogo: false, stayBlack: false },
+      { x0: base + roundW*0.33,  x1: base + roundW*0.66, peak: 74,  dur: 1270, showLogo: false, stayBlack: false },
+      { x0: base + roundW*0.66,  x1: base + roundW,      peak: 56,  dur: 1220, showLogo: true,  stayBlack: true  }
     );
   }
-  // Wylot za ekran — jeden wysoki łuk poza prawą krawędź
-  // Kropka skacze wysoko i znika za ekranem
+  // Wylot za prawy ekran
   phases.push(
-    { x0: xStart + STAGE_W, x1: xStart + STAGE_W + 120, peak: 110, dur: 900, showLogo: false, stayBlack: false, exit: true }
+    { x0: STAGE_W, x1: STAGE_W + 140, peak: 120, dur: 900, showLogo: false, stayBlack: false, exit: true }
   );
   return phases;
 }
 
-// Tura 1: normalny przebieg od 0 do STAGE_W
-// Tura 2: to samo — piłka wraca od lewej (x startuje od -DOT_R)
-const TOUR1 = buildTour(0);
-const TOUR2 = buildTour(0); // ta sama sekwencja, reset x po wyjściu
-
-let allPhases = [...TOUR1, ...TOUR2];
+const TOUR1 = buildTour();
+const TOUR2 = buildTour();
+const allPhases = [...TOUR1, ...TOUR2];
 
 let phaseIdx    = 0;
 let startTime   = null;
 let logoShowing = false;
-// Po wyjściu piłki za ekran — reset x dla tury 2
-// Obsługujemy to przez offset: tura 2 startuje jakby od -DOT_R (wejście z lewej)
-let tourOffset  = 0; // 0 dla tury 1, po exit resetujemy do 0 bo TOUR2 ma te same x
 
 function arc(t) { return 4 * t * (1 - t); }
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -110,20 +99,18 @@ function render(x, h, phase) {
   dot.style.background = isBlack ? '#111010' : '#a8a5a2';
 
   let sx = 1, sy = 1;
-  const norm = clamp(h / 28, 0, 1);
+  const norm = clamp(h / 32, 0, 1);
   if (norm < 1) {
     const sq = (1 - norm) * 0.07;
-    sx = 1 + sq;
-    sy = 1 - sq * 0.8;
+    sx = 1 + sq; sy = 1 - sq * 0.8;
   }
   dot.style.left      = (x - DOT_R) + 'px';
   dot.style.bottom    = h + 'px';
   dot.style.transform = `scaleX(${sx}) scaleY(${sy})`;
 
-  // Cień znika gdy poza ekranem
   const onScreen = x > 0 && x < STAGE_W;
-  const sp = clamp(1 - h / 55, 0, 1);
-  shadow.style.width   = (14 + sp * 12) + 'px';
+  const sp = clamp(1 - h / 60, 0, 1);
+  shadow.style.width   = (16 + sp * 14) + 'px';
   shadow.style.height  = (4  + sp * 3)  + 'px';
   shadow.style.left    = x + 'px';
   shadow.style.bottom  = '1px';
@@ -132,7 +119,7 @@ function render(x, h, phase) {
   if (phase.showLogo && h <= BLACK_THRESHOLD) logoShowing = true;
   logo.style.opacity = logoShowing ? 1 : 0;
   logo.style.left    = (x - LOGO_W / 2) + 'px';
-  logo.style.bottom  = (h + DOT_R * 2 + 6) + 'px';
+  logo.style.bottom  = (h + DOT_R * 2 + 8) + 'px';
 }
 
 function runPhase(ts) {
@@ -152,27 +139,19 @@ function runPhase(ts) {
     requestAnimationFrame(runPhase);
   } else {
     phaseIdx++;
-
     if (phaseIdx >= allPhases.length) {
-      // Koniec obu tur — pełny reset
       phaseIdx    = 0;
       startTime   = null;
       logoShowing = false;
       logo.style.opacity = 0;
-      // Przesuń kropkę poza lewy ekran przed restartem
       dot.style.left = -DOT_R + 'px';
       setTimeout(() => requestAnimationFrame(runPhase), 600);
-
     } else if (phase.exit) {
-      // Koniec tury 1 — kropka wyleciała za ekran
-      // Resetuj logo, przesuń kropkę na lewy start niewidocznie
       logoShowing = false;
       logo.style.opacity = 0;
       dot.style.left = -DOT_R + 'px';
       startTime = null;
-      // Krótka pauza — efekt "lotu za ekranem"
       setTimeout(() => requestAnimationFrame(runPhase), 200);
-
     } else {
       startTime = null;
       requestAnimationFrame(runPhase);
